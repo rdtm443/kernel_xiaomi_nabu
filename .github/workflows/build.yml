@@ -1,0 +1,56 @@
+name: Build Kernel (Stable)
+on:
+  watch:
+    types: [started]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build KernelSU Stable
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup build kernel environment
+      run: |
+        sudo apt update
+        sudo apt install libc6-dev clang flex bison libssl-dev bc python3 python2 zip unzip git lld llvm gcc-arm-linux-gnueabi
+        mkdir -p $GITHUB_WORKSPACE/kernel_workspace
+        
+    - name: Download Proton-clang
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace
+        git clone https://github.com/kdrag0n/proton-clang.git proton-clang --depth=1
+        export PATH="$GITHUB_WORKSPACE/kernel_workspace/proton-clang/bin:$PATH"
+        
+    - name: Download kernel source
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace
+        git clone https://github.com/FuSan21/kernel_xiaomi_nabu.git --depth=1
+        
+    - name: Integrate KernelSU
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/kernel_xiaomi_nabu
+        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+        
+    - name: Compiling Kernel
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/kernel_xiaomi_nabu
+        clang -v
+        make O=out ARCH=arm64 CC=clang nabu_defconfig
+        make O=out ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_ARM32=arm-linux-gnueabi- AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip LD=ld.lld -j12
+        
+    - name: Building Flashable Zip
+      run: |
+        cd $GITHUB_WORKSPACE/kernel_workspace/kernel_xiaomi_nabu
+        cp ./out/arch/arm64/boot/{Image,dtbo.img} CosmicFresh/
+        cp ./out/arch/arm64/boot/dtb.img CosmicFresh/dtb
+        cd ./CosmicFresh/ || exit
+        zip -r9 "CosmicFresh-nabu-KernelSU.zip" META-INF version anykernel.sh tools Image dtb dtbo.img
+        
+
+    - name: Uploading Kernel
+      uses: actions/upload-artifact@v3
+      with:
+        name: CosmicFresh-nabu-KernelSU
+        path: ${{ github.workspace }}/kernel_workspace/kernel_xiaomi_nabu/CosmicFresh/CosmicFresh-nabu-KernelSU.zip
