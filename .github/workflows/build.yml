@@ -28,10 +28,10 @@ jobs:
         cd $GITHUB_WORKSPACE/kernel_workspace
         git clone https://github.com/rdtm443/kernel_xiaomi_nabu.git --depth=1
         
-    - name: Integrate KernelSU
-      run: |
-        cd $GITHUB_WORKSPACE/kernel_workspace/kernel_xiaomi_nabu
-        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+#    - name: Integrate KernelSU
+#      run: |
+#        cd $GITHUB_WORKSPACE/kernel_workspace/kernel_xiaomi_nabu
+#        curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
         
     - name: Compiling Kernel
       run: |
